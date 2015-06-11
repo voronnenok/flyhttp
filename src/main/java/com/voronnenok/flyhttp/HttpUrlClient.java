@@ -68,7 +68,7 @@ public class HttpUrlClient implements HttpClient {
         return urlConnection;
     }
 
-    private static void setConnectionParams(Request<?> request, HttpURLConnection httpURLConnection) throws IOException {
+    static void setConnectionParams(Request<?> request, HttpURLConnection httpURLConnection) throws IOException {
         switch (request.getMethod()) {
             case POST:
                 addBodyIfExists(request, httpURLConnection);
@@ -95,7 +95,7 @@ public class HttpUrlClient implements HttpClient {
         }
     }
 
-    public HttpEntity getEntityFromConnection(HttpURLConnection httpURLConnection) {
+    private static HttpEntity getEntityFromConnection(HttpURLConnection httpURLConnection) {
         BasicHttpEntity httpEntity = new BasicHttpEntity();
         httpEntity.setContentLength(httpURLConnection.getContentLength());
         try {

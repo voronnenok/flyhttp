@@ -34,7 +34,7 @@ public class NetworkCache implements Cache{
     private volatile boolean isDiscCacheStarting = true;
     private final Object mDiscCacheLock = new Object();
 
-    private NetworkCache(CacheParams cacheParams) {
+    protected NetworkCache(CacheParams cacheParams) {
         this.cacheParams = cacheParams;
         mMemoryCache = new LruCache<String, Cache.Entry>(NetworkCache.this.cacheParams.mMemoryCacheSize) {
 
@@ -149,7 +149,7 @@ public class NetworkCache implements Cache{
         } catch (IOException e){}
     }
 
-    private static void writeEntry(Entry entry, OutputStream outputStream) throws IOException{
+    static void writeEntry(Entry entry, OutputStream outputStream) throws IOException{
         DataOutputStream dos = new DataOutputStream(outputStream);
         dos.writeLong(entry.lastModified);
         dos.writeLong(entry.serverTime);
@@ -159,14 +159,14 @@ public class NetworkCache implements Cache{
         closeQuitly(dos);
     }
 
-    private static void writeString(String string, DataOutputStream dos) throws IOException {
-        if(TextUtils.isEmpty(string)) {
+    static void writeString(String string, DataOutputStream dos) throws IOException {
+        if(string == null) {
             string = "";
         }
         dos.writeUTF(string);
     }
 
-    private static void writeStringMap(Map<String, String> map, DataOutputStream dos) throws IOException{
+    static void writeStringMap(Map<String, String> map, DataOutputStream dos) throws IOException{
         if(map != null) {
             dos.writeInt(map.size());
             for (String key : map.keySet()) {
@@ -178,12 +178,12 @@ public class NetworkCache implements Cache{
         }
     }
 
-    private static void writeData(byte[] data, DataOutputStream dos) throws IOException {
+    static void writeData(byte[] data, DataOutputStream dos) throws IOException {
         dos.writeInt(data.length);
         dos.write(data);
     }
 
-    private static Entry readEntry(InputStream inputStream) throws IOException {
+    static Entry readEntry(InputStream inputStream) throws IOException {
         DataInputStream dis = new DataInputStream(inputStream);
         Entry entry = new Entry();
         entry.lastModified = dis.readLong();
@@ -195,11 +195,11 @@ public class NetworkCache implements Cache{
         return entry;
     }
 
-    private static String readString(DataInputStream dis) throws IOException {
+    static String readString(DataInputStream dis) throws IOException {
         return dis.readUTF();
     }
 
-    private static Map<String, String> readStringMap(DataInputStream dis) throws IOException {
+    static Map<String, String> readStringMap(DataInputStream dis) throws IOException {
         int size = dis.readInt();
         Map<String, String> result = size == 0
                 ? Collections.<String, String>emptyMap()
@@ -214,7 +214,7 @@ public class NetworkCache implements Cache{
         return result;
     }
 
-    private static byte[] readData(DataInputStream dis) throws IOException {
+    static byte[] readData(DataInputStream dis) throws IOException {
         int size = dis.readInt();
         logEvent("Read " + size + " length for data");
         byte[] buffer = new byte[size];
@@ -328,7 +328,6 @@ public class NetworkCache implements Cache{
     }
 
     public static File getDiskCacheDir(Context context, String uniqueName) {
-        if(BuildConfig.DEBUG) return new File(Environment.getExternalStorageDirectory().getPath() + File.separator  + uniqueName);
         // Check if media is mounted or storage is built-in, if so, try and use external cache dir
         // otherwise use internal cache dir
         final String cachePath =
@@ -396,7 +395,7 @@ public class NetworkCache implements Cache{
     }
 
 
-    private static class CacheParams {
+    protected static class CacheParams {
         private final boolean mEnableMemoryCache;
         private final boolean mEnableDiscCache;
         private final int mMemoryCacheSize;
