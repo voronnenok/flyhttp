@@ -1,5 +1,8 @@
 package com.voronnenok.flyhttp.cache;
 
+import org.apache.http.impl.cookie.DateUtils;
+
+import java.util.Date;
 import java.util.Map;
 
 /**
@@ -48,6 +51,11 @@ public interface Cache {
 
         public int size() {
             return getDataSize();
+        }
+
+        public String getLastModifiedDate() {
+            Date lastModifiedDate = new Date(lastModified);
+            return DateUtils.formatDate(lastModifiedDate);
         }
 
         @Override

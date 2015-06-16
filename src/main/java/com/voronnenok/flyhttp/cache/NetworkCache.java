@@ -4,7 +4,6 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.StatFs;
-import android.text.TextUtils;
 import android.util.Log;
 import android.util.LruCache;
 
@@ -45,7 +44,7 @@ public class NetworkCache implements Cache{
             }
         };
 
-        if(this.cacheParams.mInitializeDiscCacheOnStart) {
+        if(cacheParams.mEnableDiscCache && cacheParams.mInitializeDiscCacheOnStart) {
             initDiscCacheAsync();
         }
 
@@ -69,7 +68,7 @@ public class NetworkCache implements Cache{
 
                     logEvent("Init usable space " + usableSpace);
 
-                    if(usableSpace < discCacheSize) {
+                    if(usableSpace > 0 && usableSpace < discCacheSize) {
                         discCacheSize = usableSpace;
                     }
 
@@ -225,7 +224,7 @@ public class NetworkCache implements Cache{
 
     public Cache.Entry getEntryFromCache(String key) {
         Cache.Entry entry = getEntryFromMemoryCache(key);
-        if(entry != null) {
+        if (entry != null) {
             return entry;
         }
 
@@ -322,12 +321,12 @@ public class NetworkCache implements Cache{
         new DiscCacheAsyncTask().execute(DiscCacheAsyncTask.CLOSE_CACHE);
     }
 
-    private static long getUsableSpace(File path) {
+    static long getUsableSpace(File path) {
         StatFs statFs = new StatFs(path.getPath());
         return (long)statFs.getAvailableBlocks() * (long)statFs.getBlockSize();
     }
 
-    public static File getDiskCacheDir(Context context, String uniqueName) {
+    static File getDiskCacheDir(Context context, String uniqueName) {
         // Check if media is mounted or storage is built-in, if so, try and use external cache dir
         // otherwise use internal cache dir
         final String cachePath =
@@ -338,7 +337,7 @@ public class NetworkCache implements Cache{
         return new File(cachePath + File.separator + uniqueName);
     }
 
-    public static File getExternalCacheDir(Context context) {
+    static File getExternalCacheDir(Context context) {
         if (Utils.hasFroyo()) {
             return context.getExternalCacheDir();
         }
@@ -348,7 +347,7 @@ public class NetworkCache implements Cache{
         return new File(Environment.getExternalStorageDirectory().getPath() + cacheDir);
     }
 
-    public static boolean isExternalStorageRemovable() {
+    static boolean isExternalStorageRemovable() {
         if (Utils.hasGingerbread()) {
             return Environment.isExternalStorageRemovable();
         }
@@ -359,7 +358,7 @@ public class NetworkCache implements Cache{
      * A hashing method that changes a string (like a URL) into a hash suitable for using as a
      * disk filename.
      */
-    public static String hashKeyForDisk(String key) {
+    static String hashKeyForDisk(String key) {
         String cacheKey;
         try {
             final MessageDigest mDigest = MessageDigest.getInstance("MD5");
@@ -371,7 +370,7 @@ public class NetworkCache implements Cache{
         return cacheKey;
     }
 
-    private static String bytesToHexString(byte[] bytes) {
+    static String bytesToHexString(byte[] bytes) {
         // http://stackoverflow.com/questions/332079
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < bytes.length; i++) {
@@ -410,7 +409,8 @@ public class NetworkCache implements Cache{
             mEnableDiscCache = builder.enableDiscCache;
             mDiscCacheSize = builder.discCacheSize;
             mInitializeDiscCacheOnStart = builder.initializeDiscCacheOnStart;
-            mCacheDirectory = getDiskCacheDir(builder.applicationContext, builder.cacheDirectory);
+            mCacheDirectory = builder.useApplicationCacheDir ? getDiskCacheDir(builder.applicationContext, builder.cacheDirectory)
+                                                             : new File(builder.cacheDirectory);
             mDiscCacheIndex = builder.discCacheIndex;
         }
     }
@@ -424,6 +424,7 @@ public class NetworkCache implements Cache{
         private static final int DEFAULT_DISC_CACHE_INDEX = 0;
         private static final String DEFAULT_CACHE_DIRECTORY = "cached images";
 
+        private boolean useApplicationCacheDir = true;
         private int memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
         private boolean enableMemoryCache = DEFAULT_MEMORY_CACHE_ENABLED;
         private long discCacheSize = DEFAULT_DISC_CACHE_SIZE;
@@ -434,7 +435,13 @@ public class NetworkCache implements Cache{
         private final Context applicationContext;
 
         public Builder(Context context) {
-            applicationContext = context.getApplicationContext();
+            applicationContext = context == null ? null : context.getApplicationContext();
+        }
+
+        public Builder(String cacheDirectory) {
+            this.cacheDirectory = cacheDirectory;
+            useApplicationCacheDir = false;
+            applicationContext  = null;
         }
 
         public Builder enableMemoryCache(boolean enable) {
@@ -459,6 +466,12 @@ public class NetworkCache implements Cache{
 
         public Builder setCacheDirectory(String directoryName) {
             cacheDirectory = directoryName;
+            useApplicationCacheDir = false;
+            return this;
+        }
+
+        public Builder initCacheImmediatly(boolean init) {
+            initializeDiscCacheOnStart = init;
             return this;
         }
 

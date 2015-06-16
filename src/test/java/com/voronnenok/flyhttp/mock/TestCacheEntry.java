@@ -12,7 +12,7 @@ public class TestCacheEntry extends Cache.Entry {
         data = new byte[]{23, 11, 67};
         headers = new HashMap<>();
         headers.put("x-token", "wdfhtfs");
-        headers.put("Last-Modifien", String.valueOf(System.currentTimeMillis()));
+        headers.put("Last-Modified", String.valueOf(System.currentTimeMillis()));
         lastModified = System.currentTimeMillis();
         serverTime = lastModified - 100;
         eTag = "some_tag";

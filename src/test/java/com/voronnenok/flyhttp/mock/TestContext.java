@@ -17,6 +17,10 @@ public class TestContext extends MockContext {
     @Override
     public Context getApplicationContext() {
         return this;
+    }
 
+    @Override
+    public String getPackageName() {
+        return "com.voronnenok.test.flyhttp";
     }
 }

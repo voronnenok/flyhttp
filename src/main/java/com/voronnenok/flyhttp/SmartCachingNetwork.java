@@ -58,7 +58,7 @@ public class SmartCachingNetwork implements Network {
 
     }
 
-    private static Map<String, String> getCacheHeaders(Cache.Entry entry) {
+    static Map<String, String> getCacheHeaders(Cache.Entry entry) {
         Map<String, String> cacheHeaders = new HashMap<>();
 
         if(entry.eTag != null) {
@@ -66,14 +66,13 @@ public class SmartCachingNetwork implements Network {
         }
 
         if(entry.lastModified > 0) {
-            Date lastModifiedDate = new Date(entry.lastModified);
-            cacheHeaders.put(Headers.IF_MODIFIED_SINCE, DateUtils.formatDate(lastModifiedDate));
+            cacheHeaders.put(Headers.IF_MODIFIED_SINCE, entry.getLastModifiedDate());
         }
 
         return cacheHeaders;
     }
 
-    private static byte[] bytesFromEntity(HttpEntity httpEntity) {
+    static byte[] bytesFromEntity(HttpEntity httpEntity) {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         InputStream inputStream = null;
         try {
@@ -107,7 +106,7 @@ public class SmartCachingNetwork implements Network {
         return new byte[0];
     }
 
-    private static Map<String, String> convertHeaders(Header[] headers) {
+    static Map<String, String> convertHeaders(Header[] headers) {
         Map<String, String> result = new HashMap<>(headers.length);
 
         for(Header header : headers) {

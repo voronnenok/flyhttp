@@ -1,14 +1,16 @@
 package com.voronnenok.flyhttp.cache;
 
 import com.voronnenok.flyhttp.mock.TestCacheEntry;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +23,12 @@ import static org.junit.Assert.*;
 @RunWith(RobolectricTestRunner.class)
 public class NetworkCacheTest {
 
+    File cacheDir;
+
+    @Before
+    public void setUp() throws Exception {
+        cacheDir = new File("src/test/resources/cache");
+    }
 
     @Test
     public void testHashKeyForDisk() throws Exception {
@@ -28,14 +36,32 @@ public class NetworkCacheTest {
         String hashKey1 = NetworkCache.hashKeyForDisk(key1);
         assertNotNull(hashKey1);
         assertTrue(hashKey1.length() > 0);
-        assertNotEquals(key1, hashKey1);
+        assertNotSame(key1, hashKey1);
         assertFalse(hashKey1.contains(":"));
         assertFalse(hashKey1.contains("/"));
         assertEquals(hashKey1, NetworkCache.hashKeyForDisk(key1));
         String key2 = "http://test.com/Sports";
         String hashKey2 = NetworkCache.hashKeyForDisk(key2);
-        assertNotEquals(hashKey1, hashKey2);
+        assertNotSame(hashKey1, hashKey2);
         assertEquals(hashKey1.length(), hashKey2.length());
+    }
+
+    @Test
+    public void testWriteReadEntry() throws Exception{
+        Cache.Entry entry = new TestCacheEntry();
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        NetworkCache.writeEntry(entry, outputStream);
+        InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+        Cache.Entry cachedEntry = NetworkCache.readEntry(inputStream);
+        assertEquals(entry.size(), cachedEntry.size());
+        assertEquals(entry.headers.size(), cachedEntry.headers.size());
+        for(String key : entry.headers.keySet()) {
+            assertTrue(cachedEntry.headers.containsKey(key));
+            assertEquals(entry.headers.get(key), cachedEntry.headers.get(key));
+        }
+        assertEquals(entry.lastModified, cachedEntry.lastModified);
+        assertEquals(entry.serverTime, cachedEntry.serverTime);
+        assertEquals(entry.eTag, cachedEntry.eTag);
     }
 
     @Test
@@ -93,21 +119,49 @@ public class NetworkCacheTest {
     }
 
     @Test
-    public void testWriteReadEntry() throws Exception{
+    public void testDiscCacheSaving() throws Exception {
+        NetworkCache cache = new NetworkCache.Builder(cacheDir.getAbsolutePath())
+                .enableMemoryCache(false)
+                .build();
+
         Cache.Entry entry = new TestCacheEntry();
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        NetworkCache.writeEntry(entry, outputStream);
-        InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
-        Cache.Entry cachedEntry = NetworkCache.readEntry(inputStream);
-        assertEquals(entry.size(), cachedEntry.size());
-        assertEquals(entry.headers.size(), cachedEntry.headers.size());
-        for(String key : entry.headers.keySet()) {
-            assertTrue(cachedEntry.headers.containsKey(key));
-            assertEquals(entry.headers.get(key), cachedEntry.headers.get(key));
+        String key = "some://test.key";
+        cache.put(key, entry);
+
+        Cache.Entry retrievedEntry = cache.get(key);
+        assertEquals(entry.eTag, retrievedEntry.eTag);
+        assertEquals(entry.size(), retrievedEntry.size());
+        assertEquals(entry.serverTime, retrievedEntry.serverTime);
+        assertEquals(entry.lastModified, retrievedEntry.lastModified);
+        for(String headerKey : entry.headers.keySet()) {
+            assertEquals(entry.headers.get(headerKey), retrievedEntry.headers.get(headerKey));
         }
-        assertEquals(entry.lastModified, cachedEntry.lastModified);
-        assertEquals(entry.serverTime, cachedEntry.serverTime);
-        assertEquals(entry.eTag, cachedEntry.eTag);
+
+        cache.clearCache();
     }
 
+    @Test
+    public void testCacheClearing() {
+        NetworkCache cache = new NetworkCache.Builder(cacheDir.getAbsolutePath())
+                .build();
+
+        Cache.Entry entry = new TestCacheEntry();
+        String key = "some://test.key";
+        cache.put(key, entry);
+
+        cache.clearCache();
+
+        entry = cache.get(key);
+        assertNull(entry);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        if(cacheDir.exists()) {
+            for(File file : cacheDir.listFiles()) {
+                file.delete();
+            }
+            cacheDir.delete();
+        }
+    }
 }
