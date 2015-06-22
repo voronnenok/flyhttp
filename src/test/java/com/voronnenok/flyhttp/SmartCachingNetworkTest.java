@@ -1,7 +1,9 @@
 package com.voronnenok.flyhttp;
 
 import com.voronnenok.flyhttp.cache.Cache;
+import com.voronnenok.flyhttp.mock.TestCacheEntry;
 import com.voronnenok.flyhttp.mock.TestHeader;
+import com.voronnenok.flyhttp.mock.TestRequest;
 import com.voronnenok.flyhttp.mock.TestResponse;
 
 import org.apache.http.Header;
@@ -11,7 +13,6 @@ import org.junit.Test;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,35 @@ public class SmartCachingNetworkTest {
         Network network = new SmartCachingNetwork(client);
         NetworkResponse networkResponse = network.sendRequest(new TestRequest(), null);
         assertArrayEquals(data, networkResponse.data);
+
+        assertEquals(testHeaders.length, networkResponse.headers.size());
+        for(Header header : testHeaders) {
+            assertEquals(header.getValue(), networkResponse.headers.get(header.getName()));
+        }
+    }
+
+    /**
+     * Should return data from cacheEntry and not from network
+     */
+    @Test
+    public void testUsingCacheEntry() throws Exception {
+        HttpClient client = mock(HttpClient.class);
+        Header[] testHeaders = new Header[2];
+        testHeaders[0] = new TestHeader("Accept-Encoding", "UTF-8");
+        testHeaders[1] = new TestHeader("X-token", "testToken");
+        byte[] data = new byte[]{10,11,55,56,32,48,2,45,86,24,45,32,15,6,};
+        ByteArrayInputStream is = new ByteArrayInputStream(data);
+
+        HttpEntity entity = mock(HttpEntity.class);
+        when(entity.getContent()).thenReturn(is);
+
+        BasicHttpResponse response = new TestResponse(304, entity, testHeaders);
+
+        when(client.fireRequest(any(Request.class), anyMapOf(String.class, String.class))).thenReturn(response);
+        Cache.Entry entry = new TestCacheEntry();
+        Network network = new SmartCachingNetwork(client);
+        NetworkResponse networkResponse = network.sendRequest(new TestRequest(), entry);
+        assertArrayEquals(entry.data, networkResponse.data);
 
         assertEquals(testHeaders.length, networkResponse.headers.size());
         for(Header header : testHeaders) {

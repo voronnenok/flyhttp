@@ -21,7 +21,7 @@ public class StringRequest extends Request<String> {
     }
 
     @Override
-    Response<String> parseNetworkResponse(NetworkResponse networkResponse) {
+    protected Response<String> parseNetworkResponse(NetworkResponse networkResponse) {
         String str = new String(networkResponse.data, Charset.forName(DEFAULT_CHARSET));
         if(networkResponse.statusCode < 400) {
             return Response.success(str);

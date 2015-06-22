@@ -17,4 +17,9 @@ public class TestCacheEntry extends Cache.Entry {
         serverTime = lastModified - 100;
         eTag = "some_tag";
     }
+
+    @Override
+    public String getLastModifiedDate() {
+        return String.valueOf(lastModified);
+    }
 }

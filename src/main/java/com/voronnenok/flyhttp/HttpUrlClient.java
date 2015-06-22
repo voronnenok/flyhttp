@@ -57,7 +57,7 @@ public class HttpUrlClient implements HttpClient {
         return httpResponse;
     }
 
-    private static HttpURLConnection openConnection(Request<?> request) throws IOException {
+    static HttpURLConnection openConnection(Request<?> request) throws IOException {
         URL url = new URL(request.getUrl());
         HttpURLConnection urlConnection = (HttpURLConnection)url.openConnection();
         urlConnection.setUseCaches(false);
@@ -76,7 +76,7 @@ public class HttpUrlClient implements HttpClient {
         }
     }
 
-    private static void addBodyIfExists(Request<?> request, HttpURLConnection httpURLConnection) throws IOException {
+    static void addBodyIfExists(Request<?> request, HttpURLConnection httpURLConnection) throws IOException {
         byte[] body = request.getBody();
         if(body != null) {
             httpURLConnection.setDoOutput(true);
@@ -89,13 +89,13 @@ public class HttpUrlClient implements HttpClient {
         }
     }
 
-    private static void setConnectionProperties(HttpURLConnection httpURLConnection, Map<String, String> headers) {
+    static void setConnectionProperties(HttpURLConnection httpURLConnection, Map<String, String> headers) {
         for(Map.Entry<String, String> entry : headers.entrySet()) {
             httpURLConnection.setRequestProperty(entry.getKey(), entry.getValue());
         }
     }
 
-    private static HttpEntity getEntityFromConnection(HttpURLConnection httpURLConnection) {
+    static HttpEntity getEntityFromConnection(HttpURLConnection httpURLConnection) {
         BasicHttpEntity httpEntity = new BasicHttpEntity();
         httpEntity.setContentLength(httpURLConnection.getContentLength());
         try {

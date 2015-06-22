@@ -20,7 +20,7 @@ public class ImageRequest extends Request<Bitmap> {
     }
 
     @Override
-    Response<Bitmap> parseNetworkResponse(NetworkResponse networkResponse) {
+    protected Response<Bitmap> parseNetworkResponse(NetworkResponse networkResponse) {
         Bitmap sampledBitmap = loadSampledBitmap(networkResponse.data, reqWidth, reqHeight);
         Log.d(NetworkCache.TAG, "Bitmap required size " + reqWidth + "x" + reqHeight);
         Log.d(NetworkCache.TAG, "Bitmap loaded   size " + sampledBitmap.getWidth() + "x" + sampledBitmap.getHeight());

@@ -62,7 +62,7 @@ abstract public class Request<Result> {
         return DEFAULT_CONTENT_TYPE;
     }
 
-    byte[] getBody() {
+    protected byte[] getBody() {
         try {
             return body == null ? null : body.getBytes(DEFAULT_CHARSET);
         } catch (UnsupportedEncodingException e) {
@@ -71,7 +71,7 @@ abstract public class Request<Result> {
         return null;
     }
 
-    abstract Response<Result> parseNetworkResponse(NetworkResponse networkResponse);
+    protected abstract Response<Result> parseNetworkResponse(NetworkResponse networkResponse);
 
     void deliverResponse(Response<Result> response) {
         if(listener != null) {
