@@ -1,5 +1,7 @@
 package com.voronnenok.flyhttp;
 
+import android.util.Log;
+
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -9,11 +11,13 @@ import org.apache.http.impl.cookie.DateUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.voronnenok.flyhttp.cache.Cache;
+import com.voronnenok.flyhttp.cache.NetworkCache;
 import com.voronnenok.flyhttp.errors.FlyError;
 import com.voronnenok.flyhttp.errors.ServerError;
 
@@ -51,11 +55,20 @@ public class SmartCachingNetwork implements Network {
             return new NetworkResponse(false, data, statusCode, headers);
 
         }catch (IOException e) {
+            if(e instanceof UnknownHostException && cacheEntry != null) {
+
+                return getResponseFromCachedData(cacheEntry);
+            }
 
             throw new ServerError("Exception while");
         }
 
 
+    }
+
+    static NetworkResponse getResponseFromCachedData(Cache.Entry cachedEntry) {
+
+        return new NetworkResponse(true, cachedEntry.data, HttpStatus.SC_OK, cachedEntry.headers);
     }
 
     static Map<String, String> getCacheHeaders(Cache.Entry entry) {

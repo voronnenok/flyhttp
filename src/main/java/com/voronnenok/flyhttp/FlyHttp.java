@@ -10,22 +10,23 @@ import com.voronnenok.flyhttp.cache.Cache;
 /**
  * Created by voronnenok on 01.06.15.
  */
-public class FlyHttp implements Dispatcher{
+public class FlyHttp{
     private static FlyHttp instance;
-    public final static int THREADS_COUNT = 1;
 
-    public final Network network;
-    public final Delivery delivery;
-    public final HttpClient httpClient;
-    public final Cache cache;
-
-    public final ExecutorService requestsExecutor = Executors.newFixedThreadPool(THREADS_COUNT);
+    final Network network;
+    final Delivery delivery;
+    final HttpClient httpClient;
+    final Cache cache;
+    final Dispatcher dispatcher;
+    final ImageLoader imageLoader;
 
     private FlyHttp(Cache cache) {
         this.httpClient = new HttpUrlClient();
         this.network = new SmartCachingNetwork(httpClient);
         this.delivery = new SimpleDelivery(new Handler(Looper.getMainLooper()));
         this.cache = cache;
+        dispatcher = new ExecutorDispatcher(network, delivery, httpClient, this.cache);
+        imageLoader = new DefaultImageLoader(dispatcher);
     }
 
     public synchronized static void init(Cache cache) {
@@ -38,8 +39,11 @@ public class FlyHttp implements Dispatcher{
         return instance;
     }
 
-    @Override
-    public void sendRequest(Request<?> request) {
-        requestsExecutor.execute(new NetworkTask(request, cache, network, delivery));
+    public Dispatcher getDispatcher() {
+        return dispatcher;
+    }
+
+    public ImageLoader getImageLoader() {
+        return imageLoader;
     }
 }

@@ -7,8 +7,6 @@ import android.os.StatFs;
 import android.util.Log;
 import android.util.LruCache;
 
-import com.voronnenok.flyhttp.BuildConfig;
-
 import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -35,11 +33,13 @@ public class NetworkCache implements Cache{
 
     protected NetworkCache(CacheParams cacheParams) {
         this.cacheParams = cacheParams;
+        logEvent("Max memory size " + cacheParams.mMemoryCacheSize);
         mMemoryCache = new LruCache<String, Cache.Entry>(NetworkCache.this.cacheParams.mMemoryCacheSize) {
 
             @Override
             protected int sizeOf(String key, Cache.Entry entry) {
                 int entrySize = entry.size();
+                logEvent("Entry memory size " + entrySize);
                 return entrySize == 0 ? 1 : entrySize;
             }
         };
@@ -215,7 +215,6 @@ public class NetworkCache implements Cache{
 
     static byte[] readData(DataInputStream dis) throws IOException {
         int size = dis.readInt();
-        logEvent("Read " + size + " length for data");
         byte[] buffer = new byte[size];
         int read = dis.read(buffer);
         logEvent("Read " + read + " bytes of data");
@@ -225,15 +224,35 @@ public class NetworkCache implements Cache{
     public Cache.Entry getEntryFromCache(String key) {
         Cache.Entry entry = getEntryFromMemoryCache(key);
         if (entry != null) {
+            logEvent(key + " returned from MEMORY cache");
             return entry;
         }
 
-        return getEntryFromDiscCache(key);
+        entry = getEntryFromDiscCache(key);
+        if(entry != null) {
+            logEvent(key + " returned from DISC cache");
+            syncMemoryCache(key, entry);
+        } else {
+            logEvent(key + " does not exists in cache");
+        }
+
+        return entry;
+    }
+
+    void syncMemoryCache(String key, Entry entry) {
+        if(entry != null && cacheParams.mEnableMemoryCache) {
+            addEntryToMemoryCache(key, entry);
+        }
+    }
+
+    void syncDiscCache(String key, Entry entry) {
+        if(entry != null && cacheParams.mEnableDiscCache) {
+            addEntryToDiscCache(key, entry);
+        }
     }
 
     private Cache.Entry getEntryFromMemoryCache(String key) {
         Entry entry = mMemoryCache.get(key);
-        logEvent(entry + " returned from memory cache");
         return mMemoryCache.get(key);
     }
 
@@ -258,7 +277,6 @@ public class NetworkCache implements Cache{
                 closeQuitly(inputStream);
             }
 
-            logEvent(value + "\n returned from disc cache");
             return value;
         }
     }
@@ -330,9 +348,9 @@ public class NetworkCache implements Cache{
         // Check if media is mounted or storage is built-in, if so, try and use external cache dir
         // otherwise use internal cache dir
         final String cachePath =
-                Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState()) ||
-                        !isExternalStorageRemovable() ? getExternalCacheDir(context).getPath() :
-                        context.getCacheDir().getPath();
+                Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState()) || !isExternalStorageRemovable()
+                        ? getExternalCacheDir(context).getPath()
+                        : context.getCacheDir().getPath();
 
         return new File(cachePath + File.separator + uniqueName);
     }
@@ -416,7 +434,7 @@ public class NetworkCache implements Cache{
     }
 
     public static class Builder {
-        private static final int DEFAULT_MEMORY_CACHE_SIZE = (int)Runtime.getRuntime().maxMemory();
+        private static final int DEFAULT_MEMORY_CACHE_SIZE = (int)Runtime.getRuntime().maxMemory() / 4;
         private static final long DEFAULT_DISC_CACHE_SIZE = 1024 * 1024 * 10;
         private static final boolean DEFAULT_MEMORY_CACHE_ENABLED = true;
         private static final boolean DEFAULT_DISC_CACHE_ENABLED = true;
@@ -509,8 +527,8 @@ public class NetworkCache implements Cache{
     }
 
     private static void logEvent(String message) {
-        if(BuildConfig.DEBUG) {
+//        if(BuildConfig.DEBUG) {
             Log.d(TAG, message);
-        }
+//        }
     }
 }

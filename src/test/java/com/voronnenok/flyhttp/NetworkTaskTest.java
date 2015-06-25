@@ -4,7 +4,6 @@ import com.voronnenok.flyhttp.cache.Cache;
 import com.voronnenok.flyhttp.mock.TestCacheEntry;
 import com.voronnenok.flyhttp.mock.TestRequest;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.mockito.Mockito.*;
